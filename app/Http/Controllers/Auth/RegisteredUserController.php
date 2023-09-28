@@ -64,9 +64,9 @@ class RegisteredUserController extends Controller
              *
              * initializing  mfs member in first Node
              */
-            $firstNodeRefers = Refer::where('referer_id', $mainReferer->id)->latest()->get();
+            $referNode1 = Refer::where('referer_id', $mainReferer->id)->latest()->get();
 
-            if ($firstNodeRefers->count() >= 10 && $refererRole->role == 'normal_user') {
+            if ($referNode1->count() >= 10 && $refererRole->role == 'normal_user') {
                 $mainReferer->role_id = 2;
                 $mainReferer->save();
                 return "you are mfs member now";
@@ -78,25 +78,15 @@ class RegisteredUserController extends Controller
              * initializing mfs leader
              *
              */
-            // return $firstNodeRefers;
 
-            if ($firstNodeRefers->count() >= 4 && $refererRole->role == 'mfs_member') {
-                $secondNodeMember = 0;
-                $secondNodeRefers = [];
 
-                foreach ($firstNodeRefers as $registered_user) {
-                    // in second node
-                    $user = User::where('id', $registered_user['registered_user_id'])->with('getRole')->first();
-                    // echo $user . "<br>";
-                    $refer = Refer::where('referer_id', $user->id)->latest()->get();
-                    if ($user->getRole->role == 'mfs_member') {
-                        $secondNodeMember += 1;
-                    }
-                    if ($refer != null && $refer->count() > 0) {
-                        $secondNodeRefers = array_merge($refer->toArray(), $secondNodeRefers);
-                    }
+            if ($referNode1->count() >= 4 && $refererRole->role == 'mfs_member') {
+                $memberInNode2 = 0;
+                $referNode2 = [];
 
-                }
+                $result = $this->memberChecker($referNode1, $referNode2, $memberInNode2, 'mfs_member');
+                $memberInNode2 = $result[0];
+                $referNode2 = $result[1];
 
                 /**
                  *
@@ -104,37 +94,87 @@ class RegisteredUserController extends Controller
                  *
                  */
 
-                $thirdNodeMember = $secondNodeMember + 0;
-                $thirdNodeRefers = [];
+                $memberInNode3 = $memberInNode2 + 0;
+                $referNode3 = [];
 
-                if ($secondNodeMember >= 4) {
-                    // if number of mm before more than 4; then initiazing 4 mm to second node
-                    $thirdNodeMember = 4;
-                    foreach ($secondNodeRefers as $registered_user) {
-                        // in third node
-                        $registered_user = collect($registered_user);
+                if ($memberInNode2 >= 4) {
 
-                        $user = User::where('id', $registered_user['registered_user_id'])->with('getRole')->first();
-                        // return $registered_user['registered_user_id'];
-                        $refer = Refer::where('referer_id', $user->id)->get();
-                        // return $refer;
-                        // echo $refer;
-                        // echo $user->id . "<br>";
-                        if ($user->getRole->role == 'mfs_member') {
-                            $thirdNodeMember += 1;
-                            // echo $user . "<br>";
+                    // /**
+                    //  *
+                    //  * third stage
+                    //  *
+                    //  */
+                    // // if number of mm before more than 4; then initializing 4 mm to second node
+                    // $memberInNode3 = 4;
+                    // $result = $this->memberChecker($referNode2, $referNode3, $memberInNode3, 'mfs_member');
+                    // $memberInNode3 = $result[0];
+                    // $referNode3 = $result[1];
+                    // // checking if 9 mm is exist or not under the user
+                    // if ($memberInNode3 >= 9) {
+                    //     // main referer role will leader
+                    //     $mainReferer->role_id = 3;
+                    //     $mainReferer->save();
+                    //     return "you are leader now";
+                    // } else {
+                    //     $referNode4 = [];
+                    //     $memberInNode4 = $referNode3;
+                    //     $result = $this->memberChecker($referNode3, $referNode4, $memberInNode4, 'mfs_member');
+                    //     $memberInNode4 = $result[0];
+                    //     $referNode4 = $result[1];
+
+
+                    // }
+
+
+                    /* -------------------------------------------------------------------------- */
+                    /*                                  gpt code                                  */
+                    /* -------------------------------------------------------------------------- */
+                    $referNodes = []; // Initialize an array to store refer nodes for each stage
+                    $memberCounts = []; // Initialize an array to store member counts for each stage
+
+                    for ($stage = 1; $stage <= 20; $stage++) {
+                        // Initialize member count for the current stage
+                        $memberCounts[$stage] = 0;
+
+                        // Initialize refer nodes for the current stage
+                        $referNodes[$stage] = [];
+
+                        // Calculate the previous stage
+                        $previousStage = $stage - 1;
+
+                        if ($stage == 1) {
+                            // For the first stage, perform a fixed initialization
+                            $memberCounts[$stage] = 4;
+                            $result = $this->memberChecker([], $referNodes[$stage], $memberCounts[$stage], 'mfs_member');
+
+                        } else {
+                            // For subsequent stages, use the dynamic approach
+                            $memberCounts[$stage] = $memberCounts[$previousStage]; // Initialize member count based on the previous stage
+
+                            $result = $this->memberChecker($referNodes[$previousStage], $referNodes[$stage], $memberCounts[$stage], 'mfs_member');
                         }
-                        if ($refer != null && $refer->count() > 0) {
-                            $thirdNodeRefers = array_merge($refer->toArray(), $thirdNodeRefers);
+
+                        $memberCounts[$stage] = $result[0];
+                        $referNodes[$stage] = $result[1];
+
+
+
+                        // Check if the required member count (e.g., 9) is reached for a stage
+                        if ($memberCounts[$stage] >= 9) {
+                            // Update the role or perform other actions for this stage if needed
+                            // Example: $mainReferer->role_id = 3;
+                            // ...
+                            // Break the loop or return if necessary
+                            return "you are leader now";
+                            // break;
                         }
                     }
-                    // return $thirdNodeRefers;
-                    if ($thirdNodeMember >= 8) {
-                        // main referer role will leader
-                        $mainReferer->role_id = 3;
-                        $mainReferer->save();
-                        return "you are leader now";
-                    }
+
+                    /* -------------------------------------------------------------------------- */
+                    /*                                  gpt code                                  */
+                    /* -------------------------------------------------------------------------- */
+
+
                 }
 
 
@@ -147,5 +187,27 @@ class RegisteredUserController extends Controller
         // Auth::login($user);
 
         // return redirect(RouteServiceProvider::HOME);
+    }
+    public function memberChecker($beforeNode, $referNode, $setMember, $role)
+    {
+        $memberInNode = $setMember;
+
+        foreach ($beforeNode as $registered_user) {
+
+            $registered_user = collect($registered_user);
+
+            $user = User::where('id', $registered_user['registered_user_id'])->with('getRole')->first();
+
+            $refer = Refer::where('referer_id', $user->id)->get();
+
+            if ($user->getRole->role == $role) {
+                $memberInNode += 1;
+            }
+            if ($refer != null && $refer->count() > 0) {
+                $referNode = array_merge($refer->toArray(), $referNode);
+            }
+
+        }
+        return [$memberInNode, $referNode];
     }
 }

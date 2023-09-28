@@ -23,7 +23,7 @@ class ReferTableSeeder extends Seeder
                 'role_id' => 1
             ]);
             $refer = Refer::create([
-                'referer_id' => 158,
+                'referer_id' => 117,
                 'registered_user_id' => $user->id
             ]);
         }
