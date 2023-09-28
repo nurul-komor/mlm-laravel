@@ -38,35 +38,30 @@
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
 
+        @if (isset($user))
+            <div class="mt-4">
+                <h2 class="text-xl font-bold">Referer Info</h2>
+            </div>
+            <div class="mt-4">
+                <x-input-label for="id" :value="__('User Id')" />
 
-        <div class="mt-4">
-            <h2 class="text-xl font-bold">Referer Info</h2>
-        </div>
-        <div class="mt-4">
-            <x-input-label for="id" :value="__('User Id')" />
+                <x-text-input id="id" class="block mt-1 w-full" type="number" name="referer_id"
+                    value="{{ $user != null ? $user->id : '' }}" readonly />
+            </div>
+            <div class="mt-4">
+                <x-input-label for="id" :value="__('Total Refer ')" />
 
-            <x-text-input id="id" class="block mt-1 w-full" type="number" name="referer_id"
-                value="{{ $user != null ? $user->id : '' }}" readonly />
+                <x-text-input id="id" class="block mt-1 w-full" type="number"
+                    value="{{ $user != null ? $totalRefer : '' }}" readonly />
+            </div>
 
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-        <div class="mt-4">
-            <x-input-label for="id" :value="__('Total Refer ')" />
+            <div class="mt-4">
+                <x-input-label for="role" :value="__('Role')" />
 
-            <x-text-input id="id" class="block mt-1 w-full" type="number"
-                value="{{ $user != null ? $totalRefer : '' }}" readonly />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-
-        <div class="mt-4">
-            <x-input-label for="role" :value="__('Role')" />
-
-            <x-text-input id="role" class="block mt-1 w-full" type="text"
-                value="{{ $user != null ? $user->getRole->role : '' }}" readonly />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
+                <x-text-input id="role" class="block mt-1 w-full" type="text"
+                    value="{{ $user != null ? $user->getRole->role : '' }}" readonly />
+            </div>
+        @endif
         <div class="flex items-center justify-end mt-4">
             <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 href="{{ route('login') }}">

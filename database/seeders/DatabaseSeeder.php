@@ -15,20 +15,25 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call([RoleTableSeeder::class]);
-        User::create([
-            'name' => 'admin',
-            'email' => 'admin@gmail.com',
-            'password' => Hash::make('password'),
-            'role_id' => 8
-        ]);
-        \App\Models\User::factory(100)->create();
+        // $this->call([RoleTableSeeder::class]);
+        // User::create([
+        //     'name' => 'admin',
+        //     'email' => 'admin@gmail.com',
+        //     'password' => Hash::make('password'),
+        //     'role_id' => 8
+        // ]);
+        // \App\Models\User::factory(100)->create();
 
-        \App\Models\User::factory()->create([
-            'name' => 'user' . time(),
-            'email' => time() . 'test@example.com',
-            'password' => Hash::make('password'),
-            'role_id' => 1
-        ]);
+        // \App\Models\User::factory()->create([
+        //     'name' => 'user' . time(),
+        //     'email' => time() . 'test@example.com',
+        //     'password' => Hash::make('password'),
+        //     'role_id' => 1
+        // ]);
+
+
+        // refer seeder
+        $this->call([ReferTableSeeder::class]);
+
     }
 }

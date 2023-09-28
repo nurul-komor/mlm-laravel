@@ -51,81 +51,93 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
         if ($request->referer_id != null) {
-            $referer = User::find($request->referer_id);
-            $refererRole = Role::find($referer->role_id);
+            $mainReferer = User::find($request->referer_id);
+            $refererRole = Role::find($mainReferer->role_id);
 
             // creating refer
             $refer = Refer::create([
-                'referer_id' => $referer->id,
+                'referer_id' => $mainReferer->id,
                 'registered_user_id' => $user->id
             ]);
 
             /**
              *
-             * setting mfs member in first Node
+             * initializing  mfs member in first Node
              */
-            $firstNodeReferer = Refer::where('referer_id', $referer->id);
+            $firstNodeRefers = Refer::where('referer_id', $mainReferer->id)->latest()->get();
 
-            if ($firstNodeReferer->count() >= 10 && $refererRole->role == 'normal_user') {
-                $referer->role_id = 2;
-                $referer->save();
+            if ($firstNodeRefers->count() >= 10 && $refererRole->role == 'normal_user') {
+                $mainReferer->role_id = 2;
+                $mainReferer->save();
                 return "you are mfs member now";
             }
 
             /**
              *
              *
-             * setting mfs leader
+             * initializing mfs leader
              *
              */
+            // return $firstNodeRefers;
 
-            if ($firstNodeReferer->count() >= 4 && $refererRole->role == 'mfs_member') {
-                $getReferredByReferer = $firstNodeReferer->latest()->get();
-
-
+            if ($firstNodeRefers->count() >= 4 && $refererRole->role == 'mfs_member') {
                 $secondNodeMember = 0;
-                $secondNodeRefer = [];
-                foreach ($getReferredByReferer as $ref) {
+                $secondNodeRefers = [];
+
+                foreach ($firstNodeRefers as $registered_user) {
                     // in second node
-                    $user = User::where('id', $ref->registered_user_id)->with('getRole')->first();
+                    $user = User::where('id', $registered_user['registered_user_id'])->with('getRole')->first();
+                    // echo $user . "<br>";
+                    $refer = Refer::where('referer_id', $user->id)->latest()->get();
                     if ($user->getRole->role == 'mfs_member') {
                         $secondNodeMember += 1;
                     }
-                    $secondNodeRefer[] = $user;
+                    if ($refer != null && $refer->count() > 0) {
+                        $secondNodeRefers = array_merge($refer->toArray(), $secondNodeRefers);
+                    }
+
                 }
 
                 /**
                  *
-                 * if number is mfs member is 4 then check in 3rd node and counting is going
+                 *  checking total mfs member in second node if it's<=4 then initializing msf leader to the first node referer
                  *
                  */
 
+                $thirdNodeMember = $secondNodeMember + 0;
+                $thirdNodeRefers = [];
 
-                $thirdNodeMember = $secondNodeMember;
-                $thirdNodeReferer = [];
                 if ($secondNodeMember >= 4) {
-                    foreach ($secondNodeRefer as $ref) {
-                        // in second node
-                        $user = User::where('id', $ref->registered_user_id)->with('getRole')->first();
+                    // if number of mm before more than 4; then initiazing 4 mm to second node
+                    $thirdNodeMember = 4;
+                    foreach ($secondNodeRefers as $registered_user) {
+                        // in third node
+                        $registered_user = collect($registered_user);
+
+                        $user = User::where('id', $registered_user['registered_user_id'])->with('getRole')->first();
+                        // return $registered_user['registered_user_id'];
+                        $refer = Refer::where('referer_id', $user->id)->get();
+                        // return $refer;
+                        // echo $refer;
+                        // echo $user->id . "<br>";
                         if ($user->getRole->role == 'mfs_member') {
                             $thirdNodeMember += 1;
+                            // echo $user . "<br>";
+                        }
+                        if ($refer != null && $refer->count() > 0) {
+                            $thirdNodeRefers = array_merge($refer->toArray(), $thirdNodeRefers);
                         }
                     }
-                    if ($thirdNodeMember >= 8 && $refererRole->role == 'mfs_member') {
-                        $refererRole->role_id = 3;
-                        $refererRole->save();
-                        return "you are mfs leader now";
-                    }
-                } else {
-                    foreach ($secondNodeRefer as $ref) {
-                        // in second node
-                        $user = User::where('id', $ref->registered_user_id)->with('getRole')->first();
-                        if ($user->getRole->role == 'mfs_member') {
-                            $secondNodeMember += 1;
-                        }
-
+                    // return $thirdNodeRefers;
+                    if ($thirdNodeMember >= 8) {
+                        // main referer role will leader
+                        $mainReferer->role_id = 3;
+                        $mainReferer->save();
+                        return "you are leader now";
                     }
                 }
+
+
 
             }
             return back();
