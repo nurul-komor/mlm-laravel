@@ -22,6 +22,8 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'chain_name',
+        'parent_chain'
     ];
 
     /**

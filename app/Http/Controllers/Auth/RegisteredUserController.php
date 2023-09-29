@@ -6,6 +6,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\Refer;
 use Illuminate\View\View;
+use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules;
 use App\Http\Controllers\Controller;
@@ -24,8 +25,8 @@ class RegisteredUserController extends Controller
     {
         if ($id != null) {
             $user = User::where('id', $id)->with('getRole')->first();
+            $user == null ? abort(404) : '';
             $totalRefer = Refer::where('referer_id', $user->id)->count();
-
             return view('auth.register')->with(['user' => $user, 'totalRefer' => $totalRefer]);
         }
         return view('auth.register');
@@ -148,14 +149,51 @@ class RegisteredUserController extends Controller
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
+        /* -------------------------------------------------------------------------- */
+        /*                           updating used of chain                           */
+        /* -------------------------------------------------------------------------- */
+        $newUserParentChain = [];
+        // checking if refer exist or not
+        if ($request->referer_id != null) {
+            $referer = User::find($request->referer_id);
+
+
+
+
+
+            // initializing chain name to user
+            if ($referer->parent_chain != null) {
+                $newUserParentChain = json_decode($referer->parent_chain);
+                array_push($newUserParentChain, $referer->chain_name);
+                // updating how many times chain is used
+                foreach ($newUserParentChain as $chain) {
+                    $chainOwner = User::where('chain_name', $chain)->first();
+                    $chainOwner->chain_used = $chainOwner->chain_used + 1;
+                    $chainOwner->save();
+                }
+            } else {
+                $newUserParentChain = [$referer->chain_name];
+                // updating how many times chain is used
+                $chainOwner = User::where('chain_name', $referer->chain_name)->first();
+                $chainOwner->chain_used = $chainOwner->chain_used + 1;
+                $chainOwner->save();
+            }
+        }
+
+
+
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'chain_name' => Str::random(15),
+            'parent_chain' => json_encode($newUserParentChain)
         ]);
 
         if ($request->referer_id != null) {
             $mainReferer = User::find($request->referer_id);
+
             $refererRole = Role::find($mainReferer->role_id);
 
             // Create a referral record
@@ -186,10 +224,29 @@ class RegisteredUserController extends Controller
 
         $refer[1] = Refer::where('referer_id', $mainReferer->id)->get();
         $chainCount = Refer::where('referer_id', $mainReferer->id)->count();
-        // targeting the chain
-
         $memberCount = 0;
-        for ($stage = 1; $stage <= 20; $stage++) {
+        // foreach ($refer[1] as $refer) {
+
+        //     $registeredUser = User::find($refer->registered_user_id);
+
+        //     // return $registeredUser->chain_name;
+        //     if ($registeredUser->role_id == 2) {
+        //         $memberCount += User::whereJsonContains('parent_chain', $registeredUser->chain_name)->where('role_id', 2)->count() + 1;
+        //     } else {
+
+        //         $memberCount += User::whereJsonContains('parent_chain', $registeredUser->chain_name)->where('role_id', 2)->count();
+        //     }
+        //     // $memberInChain = 0;
+        // }
+
+        /**
+         *
+         *  get the maximum number of used chain and initializing the number in for loop adding 1;
+         *
+         */
+        $maxChainUsed = User::max('chain_used') + 1;
+        $memberCount = 0;
+        for ($stage = 1; $stage <= $maxChainUsed; $stage++) {
             // Check the conditions for each stage
             if ($refererRole->role == 'normal_user' && $chainCount >= 10) {
                 $mainReferer->role_id = 2;
@@ -206,11 +263,29 @@ class RegisteredUserController extends Controller
                 $memberCount = $result[0];
                 $refer[$stage] = $result[1];
 
-
                 if ($memberCount >= 9) {
-                    $mainReferer->role_id = 3;
-                    $mainReferer->save();
-                    return "you are leader now";
+                    // checking is minimum 2 member is exist in at least 4 chain
+                    $chainCount = 0;
+                    foreach ($refer[1] as $refer) {
+
+                        $registeredUser = User::find($refer->registered_user_id);
+
+                        $memberInChain = 0;
+                        if ($registeredUser->role_id == 2) {
+                            $memberInChain += User::whereJsonContains('parent_chain', $registeredUser->chain_name)->where('role_id', 2)->count() + 1;
+                        } else {
+
+                            $memberInChain += User::whereJsonContains('parent_chain', $registeredUser->chain_name)->where('role_id', 2)->count();
+                        }
+                        $memberInChain >= 2 ? $chainCount++ : "";
+                    }
+                    if ($chainCount >= 4) {
+                        $mainReferer->role_id = 3;
+                        $mainReferer->save();
+                        return "you are leader now";
+                    }
+                    return $chainCount;
+                    // break;
                 }
                 // $stage = $this->moveToNextStage($stage);
 
@@ -218,8 +293,8 @@ class RegisteredUserController extends Controller
                 // You should implement the logic for moving to the next stage here
 
             }
-            // initializing the chain number
-            $chainNumber = $stage;
+
+
         }
         return $memberCount;
     }

@@ -2,8 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Refer extends Model
 {
@@ -18,4 +19,9 @@ class Refer extends Model
         'registered_user_id',
 
     ];
+
+    public function getRegisteredUser()
+    {
+        $this->belongsTo(User::class, 'registered_user_id', 'id');
+    }
 }
