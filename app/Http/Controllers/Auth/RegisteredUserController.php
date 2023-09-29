@@ -181,24 +181,13 @@ class RegisteredUserController extends Controller
     {
         /**
          *
-         * second stage
+         * first stage
          */
 
         $refer[1] = Refer::where('referer_id', $mainReferer->id)->get();
         $chainCount = Refer::where('referer_id', $mainReferer->id)->count();
-        // // Check the conditions for each stage
-        // if ($refererRole->role == 'normal_user' && $referNode[1]->count() >= 10) {
-        //     $mainReferer->role_id = 2;
-        //     $mainReferer->save();
-        //     return "you are mfs member now";
-        // }
-        /**
-         *
-         *second stage
-         */
-        // $referNodes[1] = ; // Initialize an array to store refer nodes for each stage
-        // $memberCounts[1] = 0; // Initialize an array to store member counts for each stage
-        // Loop through all 20 stages
+        // targeting the chain
+
         $memberCount = 0;
         for ($stage = 1; $stage <= 20; $stage++) {
             // Check the conditions for each stage
@@ -207,8 +196,6 @@ class RegisteredUserController extends Controller
                 $mainReferer->save();
                 return "you are mfs member now";
             }
-
-            // return $memberCount;
             if ($refererRole->role == 'mfs_member' && $chainCount >= 4 && $stage >= 2) {
                 // in second stage if there are more than 4 member; then initializing 4 member at total
                 if ($stage == 2 && $memberCount >= 4) {
@@ -218,24 +205,21 @@ class RegisteredUserController extends Controller
                 $result = $this->memberChecker($refer[$stage - 1], $refer[$stage], $memberCount, 'mfs_member');
                 $memberCount = $result[0];
                 $refer[$stage] = $result[1];
-                // return $memberCount;
-                if ($memberCount >= 4) {
-                    //     $result = $this->memberChecker($refer[$stage], $refer[$stage + 1], $memberCount, 'mfs_member');
-                    //     $memberCount = $result[0];
-                    //     $refer[$stage] = $result[1];
 
-                    if ($memberCount >= 9) {
-                        $mainReferer->role_id = 3;
-                        $mainReferer->save();
-                        return "you are leader now";
-                    }
+
+                if ($memberCount >= 9) {
+                    $mainReferer->role_id = 3;
+                    $mainReferer->save();
+                    return "you are leader now";
                 }
+                // $stage = $this->moveToNextStage($stage);
 
                 // Update referNodeCount based on the logic for moving to the next stage
                 // You should implement the logic for moving to the next stage here
-                // $stage = $this->moveToNextStage($stage);
 
             }
+            // initializing the chain number
+            $chainNumber = $stage;
         }
         return $memberCount;
     }
